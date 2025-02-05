@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# File to store the last downloaded version
+VERSION_FILE="latest_version.txt"
+
+# URL of the GitHub tags page
+TAGS_URL="https://github.com/advplyr/audiobookshelf-app/tags"
+
+# Function to get the latest version from GitHub
+get_latest_version() {
+  curl -s "$TAGS_URL" | grep -oP '(?<=/advplyr/audiobookshelf-app/releases/tag/)[^"]+' | head -n 1
+}
+
+# Function to download the APK for the given version
+download_apk() {
+  local version=$1
+  APK_URL="https://github.com/advplyr/audiobookshelf-app/releases/download/$version/app-release.apk"
+  echo "Downloading APK for version $version..."
+  wget -q --show-progress -O "audiobookshelf-$version.apk" "$APK_URL"
+}
+
+# Get the latest version from GitHub
+latest_version=$(get_latest_version)
+
+if [ -z "$latest_version" ]; then
+  echo "Failed to fetch the latest version. Please check your internet connection or the URL."
+  exit 1
+fi
+
+# Check if VERSION_FILE exists and read its content
+if [ -f "$VERSION_FILE" ]; then
+  current_version=$(cat "$VERSION_FILE")
+else
+  current_version=""
+fi
+
+# Compare versions and download if there's a new one
+if [ "$latest_version" != "$current_version" ]; then
+  echo "New version found: $latest_version (Current: $current_version)"
+  download_apk "$latest_version"
+
+  # Update the VERSION_FILE with the new version
+  echo "$latest_version" > "$VERSION_FILE"
+  echo "Updated to version $latest_version."
+else
+  echo "No new version found. Current version ($current_version) is up-to-date."
+fi
